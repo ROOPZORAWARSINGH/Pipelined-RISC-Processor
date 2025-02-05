@@ -1,0 +1,90 @@
+module pipelined_processor_tb;
+
+    // Inputs to the processor
+    reg clk;
+    reg reset;
+    reg [31:0] instruction;
+    
+    // Output from the processor
+    wire [31:0] result;
+    
+    // Instantiate the pipelined processor
+    pipelined_processor uut (
+        .clk(clk),
+        .reset(reset),
+        .instruction(instruction),
+        .result(result)
+    );
+    
+    // Generate clock signal (period = 10ns for a 100MHz clock)
+    always begin
+        #5 clk = ~clk;  // Toggle clock every 5ns
+    end
+
+    // Define expected result register
+    reg [31:0] expected_result;
+
+    // Stimulus block: Test cases and simulation setup
+    initial begin
+        // Create the VCD file for waveform dumping
+        $dumpfile("dump.vcd");  // Name of the VCD file
+        $dumpvars(0, pipelined_processor_tb);  // Dump all variables at top level (or specify specific signals)
+
+        // Initialize inputs
+        clk = 0;
+        reset = 0;
+        instruction = 32'b0;
+        
+        // Apply reset
+        reset = 1;  // Assert reset
+        #10;  // Wait for 10ns
+        
+        reset = 0;  // Deassert reset
+        
+        // Test: Provide sample instructions
+        // Instruction 1: Simulate an ADD instruction
+        instruction = 32'b000000_00001_00010_00000_00000_100000;  // ADD R0, R1, R2
+        expected_result = 32'd5; // Assuming R1 = 2, R2 = 3
+        #10;  // Wait for one clock cycle
+        
+        // Instruction 2: Simulate a SUB operation
+        instruction = 32'b000000_00011_00100_00000_00000_100010;  // SUB R0, R3, R4
+        expected_result = 32'd10; // Assuming R3 = 15, R4 = 5
+        #10;
+        
+        // Instruction 3: Simulate a Load word (LW)
+        instruction = 32'b100011_00001_00100_0000000000000100;  // LW R4, 4(R1)
+        expected_result = 32'd20; // Assuming memory[4] = 20
+        #10;
+        
+        // Instruction 4: Simulate a Store word (SW)
+        instruction = 32'b101011_00001_00100_0000000000000100;  // SW R4, 4(R1)
+        expected_result = 32'd0;  // No change in result for SW (store only)
+        #10;
+
+        // Instruction 5: Another operation
+        instruction = 32'b000000_00101_00110_00000_00000_100100;  // AND R0, R5, R6
+        expected_result = 32'd0; // Assuming R5 = 0, R6 = 0
+        #10;
+
+        // Finish the test after some instructions
+        $finish;
+    end
+    
+    // Display results at each clock cycle
+    always @(posedge clk) begin
+        $display("Time: %t, Result: %h", $time, result);
+    end
+    
+    // Check if the result is correct
+    initial begin
+        // Example: Monitor if the output is correct for the first instruction
+        #50;  // Wait some time for pipeline stages to propagate
+        if (result !== expected_result) begin
+            $display("Test failed at time %t, expected result: %h, got: %h", $time, expected_result, result);
+        end else begin
+            $display("Test passed at time %t, result: %h", $time, result);
+        end
+    end
+
+endmodule
