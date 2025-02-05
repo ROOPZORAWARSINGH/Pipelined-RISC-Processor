@@ -153,10 +153,16 @@ When running a simulation or test of a RISC Processor, the output typically refl
 Each instruction processed by the RISC processor goes through different pipeline stages:
 
 IF (Instruction Fetch): This stage fetches the instruction from memory and stores it in the Instruction Register (IR).
+
 ID (Instruction Decode): The instruction is decoded, and the necessary operands are read from the register file.
-EX (Execute): The operation (such as addition, subtraction, etc.) is executed here, with the operands being processed by the Arithmetic Logic Unit (ALU).
+
+EX (Execute): The operation (such as addition, subtraction, etc.) is executed here, with the operands being processed by the 
+Arithmetic Logic Unit (ALU).
+
 MEM (Memory Access): If the instruction involves memory access (like load or store), the processor will interact with memory in this stage.
+
 WB (Write Back): The result of the executed instruction is written back to the register file or memory.
+
 The output you observe at each stage is a reflection of the internal workings of the processor as it processes instructions.
 
 ## 2. Output in Waveform Simulation:
@@ -164,17 +170,25 @@ The output you observe at each stage is a reflection of the internal workings of
 When using a waveform viewer (such as ModelSim or QuestaSim), the output is displayed as a graphical representation of the signal transitions over time. Each signal (such as clk, reset, instruction, result, etc.) is displayed as a time-based waveform.
 
 Example Output Signals in the Waveform:
+
 Clock Signal (clk):
 The clk waveform shows a periodic oscillation, indicating the clock cycles driving the processor. The clock toggles between 0 and 1 at regular intervals, typically every 5ns in a simulation.
+
 Reset Signal (reset):
 The reset waveform shows a high signal (1) for the first few clock cycles, initializing the processor's state. After the reset period ends, the signal transitions to low (0), and the processor begins its normal operation.
+
 Instruction (instruction):
 The instruction waveform shows the current instruction being processed by the processor. The instruction is updated every clock cycle, with different instructions such as ADD, SUB, LW, SW shown as 32-bit values.
+
 Result (result):
 The result waveform displays the outcome of the executed instruction. The result changes depending on the type of instruction being executed. For example:
+
 For an ADD instruction, the result will show the sum of the operands.
+
 For a SUB instruction, the result will show the difference between the operands.
+
 For LW (load) instructions, the result will show the data loaded from memory.
+
 For SW (store) instructions, the result may not change as store operations do not typically produce an immediate result visible in the result signal.
 
 
