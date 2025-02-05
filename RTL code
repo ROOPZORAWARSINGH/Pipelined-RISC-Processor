@@ -1,0 +1,109 @@
+module pipelined_processor(
+    input clk,            // Clock input
+    input reset,          // Reset input
+    input [31:0] instruction, // Instruction input
+    output reg [31:0] result  // Result of computation
+);
+    // Pipeline registers
+    reg [31:0] IF_ID_instr, ID_EX_instr, EX_MEM_instr, MEM_WB_instr;
+    reg [31:0] IF_ID_pc, ID_EX_pc, EX_MEM_pc, MEM_WB_pc;
+    
+    reg [31:0] ID_EX_reg1, ID_EX_reg2, EX_MEM_alu_result, MEM_WB_alu_result;
+    reg [4:0]  ID_EX_rd, EX_MEM_rd, MEM_WB_rd;
+    reg ID_EX_reg_write, EX_MEM_reg_write, MEM_WB_reg_write;
+    
+    // Forwarding logic
+    wire [31:0] forward_reg1, forward_reg2;
+    assign forward_reg1 = (EX_MEM_rd == ID_EX_instr[25:21] && EX_MEM_reg_write) ? EX_MEM_alu_result : ID_EX_reg1;
+    assign forward_reg2 = (EX_MEM_rd == ID_EX_instr[20:16] && EX_MEM_reg_write) ? EX_MEM_alu_result : ID_EX_reg2;
+
+    // Instruction Fetch (IF) Stage
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            IF_ID_instr <= 32'b0;
+            IF_ID_pc <= 32'b0;
+        end else begin
+            IF_ID_instr <= instruction;   // Fetch instruction
+            IF_ID_pc <= IF_ID_pc + 4;     // Increment PC (basic example)
+        end
+    end
+
+    // Instruction Decode (ID) Stage
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            ID_EX_instr <= 32'b0;
+            ID_EX_pc <= 32'b0;
+            ID_EX_reg1 <= 32'b0;
+            ID_EX_reg2 <= 32'b0;
+            ID_EX_rd <= 5'b0;
+            ID_EX_reg_write <= 0;
+        end else begin
+            ID_EX_instr <= IF_ID_instr;
+            ID_EX_pc <= IF_ID_pc;
+            ID_EX_reg1 <= read_reg(IF_ID_instr[25:21]);  // Read register 1
+            ID_EX_reg2 <= read_reg(IF_ID_instr[20:16]);  // Read register 2
+            ID_EX_rd <= IF_ID_instr[15:11];
+            ID_EX_reg_write <= 1;  // Assuming register write enabled
+        end
+    end
+
+    // Execute (EX) Stage
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            EX_MEM_instr <= 32'b0;
+            EX_MEM_pc <= 32'b0;
+            EX_MEM_alu_result <= 32'b0;
+            EX_MEM_rd <= 5'b0;
+            EX_MEM_reg_write <= 0;
+        end else begin
+            EX_MEM_instr <= ID_EX_instr;
+            EX_MEM_pc <= ID_EX_pc;
+            EX_MEM_alu_result <= alu_operation(forward_reg1, forward_reg2); // ALU operation
+            EX_MEM_rd <= ID_EX_rd;
+            EX_MEM_reg_write <= ID_EX_reg_write;
+        end
+    end
+
+    // Memory (MEM) Stage
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            MEM_WB_instr <= 32'b0;
+            MEM_WB_pc <= 32'b0;
+            MEM_WB_alu_result <= 32'b0;
+            MEM_WB_rd <= 5'b0;
+            MEM_WB_reg_write <= 0;
+        end else begin
+            MEM_WB_instr <= EX_MEM_instr;
+            MEM_WB_pc <= EX_MEM_pc;
+            MEM_WB_alu_result <= EX_MEM_alu_result;
+            MEM_WB_rd <= EX_MEM_rd;
+            MEM_WB_reg_write <= EX_MEM_reg_write;
+        end
+    end
+
+    // Write-back (WB) Stage
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            result <= 32'b0;
+        end else begin
+            if (MEM_WB_reg_write) begin
+                result <= MEM_WB_alu_result;  // Write result back
+            end
+        end
+    end
+
+    // Read Register Function (Simple version for RISC)
+    function [31:0] read_reg(input [4:0] reg_addr);
+        begin
+            // Simulating a register file read (use your register file here)
+            read_reg = reg_addr * 4;  // Placeholder for actual read logic
+        end
+    endfunction
+
+    // ALU Operation (Simple ALU, extend based on your needs)
+    function [31:0] alu_operation(input [31:0] op1, input [31:0] op2);
+        begin
+            alu_operation = op1 + op2;  // For example, an ADD operation
+        end
+    endfunction
+endmodule
